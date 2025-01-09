@@ -26,8 +26,10 @@ async def webhook():
     await application.process_update(update)
     return "OK", 200
 
-def main():
+async def initialize_application():
+    """Инициализация приложения Telegram."""
     create_db()
+
     global application
     application = (
         ApplicationBuilder()
@@ -43,6 +45,10 @@ def main():
 
     start_scheduler(application)
 
+    await application.initialize()
+
 if __name__ == "__main__":
-    main()
+    import asyncio
+
+    asyncio.run(initialize_application())  # Инициализируем приложение
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8443)))
