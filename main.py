@@ -75,3 +75,8 @@ async def initialize_application():
 import asyncio
 loop = asyncio.get_event_loop()
 loop.run_until_complete(initialize_application())
+
+if __name__ == "__main__":
+    import uvicorn
+    # Используем порт, предоставленный Render
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
