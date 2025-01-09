@@ -26,7 +26,7 @@ def main():
     # Создаём приложение Telegram
     application = (
         ApplicationBuilder()
-        .token(os.getenv("API_TOKEN"))
+        .token(os.getenv("7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0"))
         .http_version("1.1")
         .connection_pool_size(100)
         .build()
