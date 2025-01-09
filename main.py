@@ -1,3 +1,4 @@
+import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from database import add_subscriber, remove_subscriber, create_db
@@ -25,9 +26,9 @@ def main():
     # Создаём приложение Telegram
     application = (
         ApplicationBuilder()
-        .token("7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0")
+        .token(os.getenv("API_TOKEN"))
         .http_version("1.1")
-        .connection_pool_size(100)  # Увеличиваем пул соединений
+        .connection_pool_size(100)
         .build()
     )
 
@@ -39,8 +40,12 @@ def main():
     # Запускаем планировщик
     start_scheduler(application)
 
-    # Запуск polling
-    application.run_polling()
+    # Установка Webhook
+    application.run_webhook(
+        listen="0.0.0.0",  # Слушать все подключения
+        port=int(os.getenv("PORT", 10000)),  # Порт, предоставляемый Render
+        webhook_url = f"https://telega2.onrender.com/webhook",
+    )
 
 if __name__ == "__main__":
     main()
