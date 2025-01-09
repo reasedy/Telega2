@@ -1,13 +1,13 @@
 import os
-from quart import Quart, request
+from fastapi import FastAPI, Request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from telegram.request import HTTPXRequest
 from database import add_subscriber, remove_subscriber, create_db
 from scheduler import start_scheduler
 
-# Создание приложения Quart
-app = Quart(__name__)
+# Создание приложения FastAPI
+app = FastAPI()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start."""
@@ -35,16 +35,16 @@ async def handle_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Ошибка при отправке сообщения в handle_class: {e}")
 
-@app.route('/webhook', methods=['POST'])
-async def webhook():
+@app.post("/webhook")
+async def webhook(request: Request):
     """Обработка входящих запросов от Telegram."""
-    json_data = await request.get_json()
+    json_data = await request.json()
     update = Update.de_json(json_data, application.bot)
     try:
         await application.process_update(update)
     except Exception as e:
         print(f"Ошибка при обработке webhook: {e}")
-    return "OK", 200
+    return {"status": "OK"}
 
 async def initialize_application():
     """Инициализация приложения Telegram."""
@@ -72,8 +72,6 @@ async def initialize_application():
     # Инициализация приложения
     await application.initialize()
 
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(initialize_application())  # Инициализируем приложение Telegram
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8443)))
+import asyncio
+loop = asyncio.get_event_loop()
+loop.run_until_complete(initialize_application())

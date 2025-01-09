@@ -1,5 +1,5 @@
 python-telegram-bot[webhooks]==20.3
 apscheduler==3.9.1
 pytz==2023.3
-Quart==0.18.3
-Werkzeug==2.2.3  # Совместимая версия
+fastapi==0.100.0
+uvicorn==0.22.0
