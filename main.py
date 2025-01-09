@@ -9,74 +9,53 @@ from scheduler import start_scheduler
 # Создание приложения FastAPI
 app = FastAPI()
 
+# Глобальная переменная для Application
+application = None
+
+# Обработчики Telegram-бота
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start."""
-    try:
-        await update.message.reply_text(
-            "Привет! Введи свой класс (например, 12A), чтобы получать уведомления о следующих уроках."
-        )
-    except Exception as e:
-        print(f"Ошибка при отправке сообщения в start: {e}")
+    await update.message.reply_text("Привет! Введи свой класс (например, 12A), чтобы получать уведомления о следующих уроках.")
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /stop."""
-    try:
-        remove_subscriber(update.effective_user.id)
-        await update.message.reply_text("Вы отписались от уведомлений.")
-    except Exception as e:
-        print(f"Ошибка при отправке сообщения в stop: {e}")
+    remove_subscriber(update.effective_user.id)
+    await update.message.reply_text("Вы отписались от уведомлений.")
 
 async def handle_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик сообщений с классами."""
-    try:
-        user_class = update.message.text.strip()
-        add_subscriber(update.effective_user.id, user_class)
-        await update.message.reply_text(f"Вы подписаны на уведомления для класса {user_class}.")
-    except Exception as e:
-        print(f"Ошибка при отправке сообщения в handle_class: {e}")
+    user_class = update.message.text.strip()
+    add_subscriber(update.effective_user.id, user_class)
+    await update.message.reply_text(f"Вы подписаны на уведомления для класса {user_class}.")
 
 @app.post("/webhook")
 async def webhook(request: Request):
     """Обработка входящих запросов от Telegram."""
+    global application
     json_data = await request.json()
     update = Update.de_json(json_data, application.bot)
-    try:
-        await application.process_update(update)
-    except Exception as e:
-        print(f"Ошибка при обработке webhook: {e}")
+    await application.process_update(update)
     return {"status": "OK"}
 
-async def initialize_application():
-    """Инициализация приложения Telegram."""
-    create_db()
-
+@app.on_event("startup")
+async def startup_event():
+    """Инициализация Telegram-бота при старте FastAPI."""
     global application
+    create_db()
     application = (
         ApplicationBuilder()
         .token(os.getenv("API_TOKEN"))
         .http_version("1.1")
-        .connection_pool_size(100)  # Увеличиваем размер пула соединений
+        .connection_pool_size(100)
         .build()
     )
 
-    # Устанавливаем таймауты для подключения и чтения
     application.request = HTTPXRequest(connect_timeout=5.0, read_timeout=5.0)
 
-    # Добавляем обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_class))
 
     start_scheduler(application)
-
-    # Инициализация приложения
     await application.initialize()
-
-import asyncio
-loop = asyncio.get_event_loop()
-loop.run_until_complete(initialize_application())
 
 if __name__ == "__main__":
     import uvicorn
-    # Используем порт, предоставленный Render
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
