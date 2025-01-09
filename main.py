@@ -1,8 +1,11 @@
 import os
+from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from database import add_subscriber, remove_subscriber, create_db
 from scheduler import start_scheduler
+
+app = Flask(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start."""
@@ -19,11 +22,20 @@ async def handle_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_subscriber(update.effective_user.id, user_class)
     await update.message.reply_text(f"Вы подписаны на уведомления для класса {user_class}.")
 
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    """Обработка входящих запросов от Telegram."""
+    json_data = request.get_json()
+    update = Update.de_json(json_data, application.bot)
+    application.process_update(update)
+    return "OK", 200
+
 def main():
     """Основной запуск бота."""
     create_db()
 
     # Создаём приложение Telegram
+    global application
     application = (
         ApplicationBuilder()
         .token(os.getenv("API_TOKEN"))
@@ -40,12 +52,6 @@ def main():
     # Запускаем планировщик
     start_scheduler(application)
 
-    # Установка Webhook
-    application.run_webhook(
-        listen="0.0.0.0",  # Слушать все подключения
-        port=int(os.getenv("PORT", 10000)),  # Порт, предоставляемый Render
-        webhook_url = f"https://telega2.onrender.com/webhook",
-    )
-
 if __name__ == "__main__":
     main()
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8443)))
